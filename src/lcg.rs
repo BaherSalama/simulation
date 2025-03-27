@@ -1,5 +1,6 @@
 use crate::utils::*;
 use eframe::egui::{self, Ui};
+
 pub struct Lcg {
     start: f32,
     amount: usize,
@@ -25,8 +26,8 @@ impl Default for Lcg {
 }
 
 impl super::View for Lcg {
-    fn ui(&mut self, ui: &mut Ui) {
-        egui::ScrollArea::vertical().show(ui, |ui| {
+    fn ui(&mut self, ui: &mut Ui, id: u64) {
+        egui::ScrollArea::vertical().id_salt(id).show(ui, |ui| {
             ui.heading("Lcg");
             ui.add(egui::Slider::new(&mut self.amount, 0..=100).text("count"));
             ui.add(egui::Slider::new(&mut self.start, 1.0..=100.0).text("X"));

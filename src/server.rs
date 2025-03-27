@@ -1,5 +1,5 @@
 use crate::utils::*;
-use eframe::egui::{self, Ui};
+use eframe::egui::{self, Ui, Window};
 
 pub struct Server {
     server_count: usize,
@@ -90,117 +90,138 @@ impl Default for Server {
     }
 }
 
-impl super::View for Server {
-    fn ui(&mut self, ui: &mut Ui) {
+impl Server {
+    pub fn in_arrival(&mut self, ui: &mut Ui) {
         let a = vec![(0, 0), (1, 1)];
-        egui::ScrollArea::vertical().show(ui, |ui| {
-            ui.heading("Simulation server");
-            ui.collapsing("arrival", |ui| {
-                ui.add(egui::Slider::new(&mut self.arrival_rows, 0..=10).text("random"));
-                if ui.button("run").clicked() {
-                    size_mat(&mut self.interval_arrival, self.arrival_rows, 4);
-                    parse_in(&self.arriavl_table, &mut self.interval_arrival, &a);
-                    make_intervals(&mut self.interval_arrival);
-                    make_range(&self.interval_arrival, &mut self.arrival);
-                }
+        ui.add(egui::Slider::new(&mut self.arrival_rows, 0..=10).text("random"));
+        if ui.button("arrival").clicked() {
+            size_mat(&mut self.interval_arrival, self.arrival_rows, 4);
+            parse_in(&self.arriavl_table, &mut self.interval_arrival, &a);
+            make_intervals(&mut self.interval_arrival);
+            make_range(&self.interval_arrival, &mut self.arrival);
+        }
+        input_table(
+            ui,
+            self.arrival_rows,
+            &mut self.arriavl_table,
+            &self.arrival_headings,
+            &"arrival".into(),
+        );
+    }
+    pub fn out_arrival(&mut self, ui: &mut Ui) {
+        let a = vec![(0, 0), (1, 1)];
+        display_table(
+            ui,
+            &self.interval_arrival,
+            &"arrival interval".into(),
+            false,
+            &self.arrival_headings,
+            Some(&self.arrival),
+        )
+    }
+
+    pub fn in_service(&mut self, ui: &mut Ui, i: usize) {
+        let a = vec![(0, 0), (1, 1)];
+        ui.vertical(|ui| {
+            ui.vertical(|ui| {
+                let mut a = "service".to_string();
+                a.push_str(&i.to_string());
                 input_table(
                     ui,
-                    self.arrival_rows,
-                    &mut self.arriavl_table,
+                    self.service_rows,
+                    &mut self.service_table[i],
                     &self.arrival_headings,
-                    &"arrival".into(),
+                    &a,
                 );
+            });
+        });
+    }
+
+    pub fn out_service(&mut self, ui: &mut Ui, i: usize) {
+        ui.vertical(|ui| {
+            ui.vertical(|ui| {
+                let mut a = "service".to_string();
+                a.push_str(&i.to_string());
                 display_table(
                     ui,
-                    &self.interval_arrival,
-                    &"arrival interval".into(),
+                    &self.interval_service[i],
+                    &a,
                     false,
                     &self.arrival_headings,
-                    Some(&self.arrival),
+                    Some(&self.service[i]),
                 );
             });
-            ui.collapsing("service", |ui| {
-                ui.add(egui::Slider::new(&mut self.service_rows, 0..=10).text("random"));
-                ui.add(egui::Slider::new(&mut self.server_count, 1..=10).text("number of servers"));
-                if ui.button("run").clicked() {
-                    for i in 0..self.server_count {
-                        size_mat(&mut self.interval_service[i], self.service_rows, 4);
-                        parse_in(&self.service_table[i], &mut self.interval_service[i], &a);
-                        make_intervals(&mut self.interval_service[i]);
-                        make_range(&self.interval_service[i], &mut self.service[i]);
-                    }
+        });
+    }
+    pub fn out_res(&mut self, ui: &mut Ui) {
+        let a = vec![(0, 0), (1, 1)];
+        ui.add(egui::Slider::new(&mut self.service_rows, 0..=10).text("random"));
+        ui.add(egui::Slider::new(&mut self.server_count, 1..=10).text("number of servers"));
+        if ui.button("run").clicked() {
+            for i in 0..self.server_count {
+                size_mat(&mut self.interval_service[i], self.service_rows, 4);
+                parse_in(&self.service_table[i], &mut self.interval_service[i], &a);
+                make_intervals(&mut self.interval_service[i]);
+                make_range(&self.interval_service[i], &mut self.service[i]);
+            }
+        }
+        self.service_table.resize(self.server_count, vec![]);
+        for row in 0..self.server_count {
+            self.service_table[row].resize(self.service_rows, vec![]);
+        }
+    }
+    pub fn in_res(&mut self, ui: &mut Ui) {
+        ui.add(egui::Slider::new(&mut self.customer_count, 0..=20).text("customer"));
+        input_table(
+            ui,
+            self.customer_count,
+            &mut self.random_table,
+            &self.sol_headings[1..3],
+            &"sol".into(),
+        );
+        let b = vec![(0, 0), (1, 2)];
+        if ui.button("run").clicked() {
+            make_headnig(
+                &mut self.sol_headings,
+                &mut self.repeated_headings,
+                &self.end_headings,
+                self.server_count,
+            );
+            size_mat(
+                &mut self.sol,
+                self.customer_count,
+                4 + (self.server_count * 3),
+            );
+            parse_in(&self.random_table, &mut self.sol, &b);
+            for j in 0..self.server_count {
+                for i in 0..self.customer_count {
+                    self.sol[i][(j * 3) + 2] = self.sol[i][2];
                 }
-                self.service_table.resize(self.server_count, vec![]);
-                for row in 0..self.server_count {
-                    self.service_table[row].resize(self.service_rows, vec![]);
-                }
-                ui.vertical(|ui| {
-                    for i in 0..self.server_count {
-                        ui.vertical(|ui| {
-                            let mut a = "service".to_string();
-                            a.push_str(&i.to_string());
-                            ui.label("sad");
-                            input_table(
-                                ui,
-                                self.service_rows,
-                                &mut self.service_table[i],
-                                &self.arrival_headings,
-                                &a,
-                            );
-                            a.push_str(&i.to_string());
-                            display_table(
-                                ui,
-                                &self.interval_service[i],
-                                &a,
-                                false,
-                                &self.arrival_headings,
-                                Some(&self.service[i]),
-                            );
-                        });
-                    }
-                })
-            });
-            ui.collapsing("sol", |ui| {
-                ui.add(egui::Slider::new(&mut self.customer_count, 0..=20).text("customer"));
-                input_table(
-                    ui,
-                    self.customer_count,
-                    &mut self.random_table,
-                    &self.sol_headings[1..3],
-                    &"sol".into(),
+            }
+            range_edit(&mut self.sol, &self.arrival, &self.interval_arrival, 0);
+            for i in 0..self.server_count {
+                range_edit(
+                    &mut self.sol,
+                    &self.service[i],
+                    &self.interval_service[i],
+                    (i * 3) + 2,
                 );
-                let b = vec![(0, 0), (1, 2)];
-                if ui.button("run").clicked() {
-                    make_headnig(
-                        &mut self.sol_headings,
-                        &mut self.repeated_headings,
-                        &self.end_headings,
-                        self.server_count,
-                    );
-                    size_mat(
-                        &mut self.sol,
-                        self.customer_count,
-                        4 + (self.server_count * 3),
-                    );
-                    parse_in(&self.random_table, &mut self.sol, &b);
-                    for j in 0..self.server_count {
-                        for i in 0..self.customer_count {
-                            self.sol[i][(j * 3) + 2] = self.sol[i][2];
-                        }
-                    }
-                    range_edit(&mut self.sol, &self.arrival, &self.interval_arrival, 0);
-                    for i in 0..self.server_count {
-                        range_edit(
-                            &mut self.sol,
-                            &self.service[i],
-                            &self.interval_service[i],
-                            (i * 3) + 2,
-                        );
-                    }
-                    self.solve();
-                }
-            });
-            display_table(ui, &self.sol, &"sol".into(), true, &self.sol_headings, None);
+            }
+            // self.solve();
+            comulative(&mut self.sol, 0, 1);
+            run(&mut self.sol, self.server_count);
+        }
+    }
+    pub fn wd(&mut self, ui: &mut Ui) {
+        egui::ScrollArea::vertical().show(ui, |ui| {
+            display_table(
+                ui,
+                &self.sol,
+                &"Answer".into(),
+                true,
+                &self.sol_headings,
+                None,
+            );
         });
     }
 }

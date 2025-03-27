@@ -1,5 +1,7 @@
 use crate::utils::*;
 use eframe::egui::{self, Ui};
+use egui_dock::{DockArea, DockState, NodeIndex, Style};
+
 pub struct Midsquare {
     start: String,
     amount: usize,
@@ -19,8 +21,8 @@ impl Default for Midsquare {
 }
 
 impl super::View for Midsquare {
-    fn ui(&mut self, ui: &mut Ui) {
-        egui::ScrollArea::vertical().show(ui, |ui| {
+    fn ui(&mut self, ui: &mut Ui, id: u64) {
+        egui::ScrollArea::vertical().id_salt(id).show(ui, |ui| {
             ui.heading("Mid square");
             ui.add(egui::Slider::new(&mut self.amount, 0..=50).text("random"));
             ui.text_edit_singleline(&mut self.start);
